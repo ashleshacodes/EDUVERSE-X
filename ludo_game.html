@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>EduVerSeX — Ludo (Playable, Concept Popups)</title>
+<style>
+  :root{
+    --bg:#060713; --panel:rgba(255,255,255,0.03);
+    --neon1:#00e6ff; --neon2:#b517ff; --muted:#98a0c1;
+    --glass: rgba(255,255,255,0.04);
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#030312,#060713);font-family:Inter,system-ui,Roboto,-apple-system,Segoe UI;}
+  .wrap{max-width:1100px;margin:28px auto;padding:20px;color:#e7eefc}
+  h1{font-family:Orbitron, sans-serif;font-weight:700;color:var(--neon1);text-shadow:0 0 14px rgba(0,230,255,0.08);}
+  .headerRow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .info{color:var(--muted);max-width:720px}
+  /* board container */
+  #boardWrap{display:flex;gap:18px;align-items:flex-start;margin-top:18px;flex-wrap:wrap}
+  .panel{background:var(--panel);border:1px solid rgba(255,255,255,0.04);padding:16px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.6)}
+  #gameContainer{width:720px}
+  canvas#ludoCanvas{display:block;width:100%;height:auto;border-radius:10px;background:linear-gradient(180deg,#05060b,#071027);box-shadow:0 10px 40px rgba(181,23,255,0.06);border:3px solid rgba(0,230,255,0.06)}
+  .controls{display:flex;gap:10px;margin-top:12px;align-items:center}
+  .btn{background:linear-gradient(90deg,var(--neon1),var(--neon2));border:none;padding:10px 14px;border-radius:10px;color:#02121a;font-weight:800;cursor:pointer;box-shadow:0 8px 30px rgba(0,230,255,0.06)}
+  .btn.secondary{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)}
+  .small{padding:8px 10px;font-size:14px}
+  .status{color:var(--muted);margin-left:8px}
+  /* color modal */
+  #colorModal{position:fixed;inset:0;background:linear-gradient(rgba(1,2,8,0.7), rgba(1,2,8,0.85));display:flex;align-items:center;justify-content:center;z-index:1000}
+  .modalCard{background:#071024;padding:20px;border-radius:12px;border:2px solid rgba(0,230,255,0.06);width:420px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
+  .colorRow{display:flex;gap:8px;justify-content:center;margin-top:12px}
+  .colorBtn{flex:1;padding:12px;border-radius:8px;border:none;color:white;font-weight:800;cursor:pointer}
+  .red{background:#e74c3c} .green{background:#27ae60} .yellow{background:#f1c40f;color:#111} .blue{background:#2980b9}
+  /* concept modal */
+  #conceptModal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:1100;background:rgba(0,0,0,0.6)}
+  .conceptCard{background:#071028;padding:18px;border-radius:10px;color:#fff;border:1px solid rgba(0,230,255,0.06);width:420px}
+  .conceptTitle{font-family:Orbitron, sans-serif;color:var(--neon2);margin-bottom:6px}
+  .footerNote{color:var(--muted);margin-top:10px;font-size:13px}
+  /* responsive */
+  @media (max-width:820px){
+    #boardWrap{flex-direction:column;align-items:center}
+    #gameContainer{width:100%}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="headerRow">
+      <div>
+        <h1>EduVerSeX — Ludo (Playable)</h1>
+        <div class="info">Human vs Bot — classic Ludo rules (enter on 6). Each landed square shows a short AI/coding concept that the player must acknowledge before continuing. Tokens animate smoothly along the path.</div>
+      </div>
+      <div style="text-align:right">
+        <div class="panel" style="padding:10px 14px;border-radius:10px">
+          <strong id="scoreText">Points: 0</strong><div class="footerNote">Concept-visit points will be added on learning.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="boardWrap">
+      <div id="gameContainer" class="panel">
+        <canvas id="ludoCanvas" width="720" height="720"></canvas>
+        <div class="controls">
+          <button id="rollBtn" class="btn small" disabled>Roll Dice</button>
+          <div class="status" id="diceDisplay">Dice: -</div>
+          <div class="status" id="turnDisplay"></div>
+          <button id="resetBtn" class="btn secondary small" style="margin-left:auto">Restart</button>
+        </div>
+        <div class="footerNote">Click any of your available token markers to move after rolling the dice. If you land, a concept popup appears — click "I learned" to continue.</div>
+      </div>
+
+      <div style="min-width:300px" class="panel">
+        <h3 style="margin-top:0;color:var(--neon1)">How to play</h3>
+        <ul style="color:var(--muted)">
+          <li>Pick a color → You vs Bot (next color clockwise).</li>
+          <li>Roll dice; get a 6 to bring a token out of home.</li>
+          <li>Each landed square shows a short AI/coding concept; confirm to proceed.</li>
+          <li>Capture opponent tokens by landing on them (sends them back to home).</li>
+        </ul>
+        <div style="margin-top:12px">
+          <button id="chooseColor" class="btn small">Choose Your Color</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Color modal -->
+  <div id="colorModal">
+    <div class="modalCard">
+      <h2 style="margin:0;color:var(--neon1)">Choose your color</h2>
+      <p style="color:var(--muted)">Pick a token color to start. Bot will be the next color clockwise.</p>
+      <div class="colorRow">
+        <button class="colorBtn red" data-color="red">Red</button>
+        <button class="colorBtn green" data-color="green">Green</button>
+        <button class="colorBtn yellow" data-color="yellow">Yellow</button>
+        <button class="colorBtn blue" data-color="blue">Blue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Concept modal -->
+  <div id="conceptModal">
+    <div class="conceptCard">
+      <div class="conceptTitle" id="conceptTitle">Concept</div>
+      <div id="conceptText" style="color:#dfefff"></div>
+      <div style="margin-top:12px;text-align:right">
+        <button id="learnBtn" class="btn small">I learned</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // Canvas + drawing
+  const canvas = document.getElementById('ludoCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+  const R = Math.min(W,H)*0.38;     // outer ring radius
+  const PATH_COUNT = 52;
+  const HOME_STEPS = 6; // steps to finish
+  const COLORS = ['red','green','yellow','blue'];
+  const START_INDICES = { red:0, green:13, yellow:26, blue:39 };
+
+  // UI elements
+  const colorModal = document.getElementById('colorModal');
+  const colorBtns = document.querySelectorAll('.colorBtn');
+  const chooseColorBtn = document.getElementById('chooseColor');
+  const rollBtn = document.getElementById('rollBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const diceDisplay = document.getElementById('diceDisplay');
+  const turnDisplay = document.getElementById('turnDisplay');
+  const conceptModal = document.getElementById('conceptModal');
+  const conceptTitle = document.getElementById('conceptTitle');
+  const conceptText = document.getElementById('conceptText');
+  const learnBtn = document.getElementById('learnBtn');
+  const scoreText = document.getElementById('scoreText');
+
+  // Concepts list (AI/coding topics)
+  const CONCEPTS = [
+    "What is a Neural Network? — layers of units that learn patterns.",
+    "Supervised Learning — models trained on labeled data.",
+    "Unsupervised Learning — finding patterns without labels.",
+    "Reinforcement Learning — agents learn via reward signals.",
+    "Gradient Descent — algorithm to minimize loss.",
+    "Overfitting — model learns noise, not signal; regularize.",
+    "Epoch — one full pass through the dataset.",
+    "Activation Functions — e.g. ReLU, Sigmoid, control non-linearity.",
+    "Convolutional Networks — great for images.",
+    "RNNs & LSTM — sequence modeling for text/time-series.",
+    "Data Preprocessing — clean, normalize, feature engineering.",
+    "Backpropagation — propagate loss to adjust weights.",
+    "Learning Rate — step size for updates.",
+    "Batch Size — number of samples per update.",
+    "Regularization — dropouts, L2, prevent overfitting."
+  ];
+
+  // Build circular ring coordinates
+  const ringCoords = [];
+  for(let i=0;i<PATH_COUNT;i++){
+    const angle = -Math.PI/2 + (i*(Math.PI*2)/PATH_COUNT);
+    const x = cx + Math.cos(angle)*R;
+    const y = cy + Math.sin(angle)*R;
+    ringCoords.push({x,y,angle});
+  }
+
+  // Home radial tracks: for each color, HOME_STEPS positions toward center
+  const homeTracks = {};
+  for(const color of COLORS){
+    const startIndex = START_INDICES[color];
+    const start = ringCoords[(startIndex + 0) % PATH_COUNT];
+    // direction toward center
+    const dx = cx - start.x;
+    const dy = cy - start.y;
+    const track = [];
+    for(let s=1;s<=HOME_STEPS;s++){
+      const t = s/(HOME_STEPS+1);
+      track.push({x: start.x + dx*t, y: start.y + dy*t});
+    }
+    homeTracks[color] = track;
+  }
+
+  // Game state classes
+  class Token {
+    constructor(color, id) {
+      this.color = color;
+      this.id = id; // 0..3
+      this.onTrack = -1;   // index on ringCoords (0..51), -1 = at home (not entered), -2 = finished
+      this.steps = 0;      // steps moved along main ring+home
+      this.x = 0; this.y = 0;
+      this.updateXY();
+    }
+    updateXY(){
+      if(this.onTrack === -1){
+        // arrange four tokens around the color's starting position (near start coord)
+        const start = ringCoords[START_INDICES[this.color]];
+        const box = 28; // offset spacing
+        const offsets = [
+          {dx:-box,dy:-box},{dx:box,dy:-box},{dx:-box,dy:box},{dx:box,dy:box}
+        ];
+        this.x = start.x + offsets[this.id].dx;
+        this.y = start.y + offsets[this.id].dy;
+      } else if(this.onTrack === -2){
+        // finished -> center small offset
+        const idx = this.id;
+        const o = 12;
+        const offsets = [
+          {dx:-o,dy:-o},{dx:o,dy:-o},{dx:-o,dy:o},{dx:o,dy:o}
+        ];
+        this.x = cx + offsets[idx].dx;
+        this.y = cy + offsets[idx].dy;
+      } else if(this.steps < PATH_COUNT){
+        const p = ringCoords[this.onTrack];
+        this.x = p.x;
+        this.y = p.y;
+      } else {
+        // inside home track
+        const homeIndex = this.steps - PATH_COUNT - 1; // 0..HOME_STEPS-1
+        const track = homeTracks[this.color];
+        if(homeIndex >= 0 && homeIndex < track.length){
+          this.x = track[homeIndex].x;
+          this.y = track[homeIndex].y;
+        } else {
+          this.x = cx; this.y = cy;
+        }
+      }
+    }
+    canMove(steps) {
+      if(this.onTrack === -2) return false; // finished
+      if(this.onTrack === -1 && steps !== 6) return false; // needs 6 to enter
+      // Do not allow move beyond final step
+      const futureSteps = this.steps + steps;
+      const maxSteps = PATH_COUNT + HOME_STEPS;
+      return futureSteps <= maxSteps;
+    }
+    // apply small move (no animation) used for check
+    cloneAfterMove(steps){
+      const copy = new Token(this.color,this.id);
+      copy.onTrack = this.onTrack;
+      copy.steps = this.steps;
+      if(copy.onTrack === -1 && steps === 6){
+        copy.onTrack = START_INDICES[this.color];
+        copy.steps = 1;
+      } else {
+        copy.steps += steps;
+        if(copy.steps < PATH_COUNT) {
+          copy.onTrack = (this.onTrack + steps + PATH_COUNT) % PATH_COUNT;
+        } else if(copy.steps === PATH_COUNT + HOME_STEPS){
+          copy.onTrack = -2; // finished
+        } else {
+          // enter home stage; onTrack will be irrelevant
+          copy.onTrack = null;
+        }
+      }
+      copy.updateXY();
+      return copy;
+    }
+  }
+
+  class Player {
+    constructor(color, isBot=false) {
+      this.color = color;
+      this.isBot = isBot;
+      this.tokens = [];
+      for(let i=0;i<4;i++) this.tokens.push(new Token(color,i));
+    }
+    allFinished(){ return this.tokens.every(t => t.onTrack === -2); }
+  }
+
+  // Game variables
+  let players = []; // order: red, green, yellow, blue
+  for(const c of COLORS) players.push(new Player(c,false));
+  let humanColor = null;
+  let humanIdx = 0;
+  let botIdx = 1;
+  let currentTurn = 0; // index into players (0..3)
+  let dice = 0;
+  let animating = false;
+  let points = 0;
+
+  // Utility
+  function drawBoard(){
+    // background
+    ctx.clearRect(0,0,W,H);
+
+    // soft circular neon glow
+    const g = ctx.createRadialGradient(cx,cy, R*0.4, cx,cy, R*1.2);
+    g.addColorStop(0, 'rgba(181,23,255,0.025)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+    // ring path cells
+    for(let i=0;i<PATH_COUNT;i++){
+      const p = ringCoords[i];
+      const size = 26;
+      ctx.beginPath();
+      ctx.fillStyle = (i % 2 === 0) ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.lineWidth = 1;
+      ctx.arc(p.x,p.y,size/2,0,Math.PI*2);
+      ctx.fill(); ctx.stroke();
+    }
+
+    // colored home tracks
+    for(const c of COLORS){
+      const track = homeTracks[c];
+      for(let i=0;i<track.length;i++){
+        const p = track[i];
+        ctx.beginPath();
+        ctx.fillStyle = (i === track.length-1) ? COLORS.indexOf(c) === 0 ? '#ffaaaa' : (c) : colorOf(c,0.12);
+        ctx.fillStyle = colorOf(c, 0.12);
+        ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+        ctx.lineWidth = 1;
+        ctx.arc(p.x,p.y,14,0,Math.PI*2);
+        ctx.fill(); ctx.stroke();
+      }
+    }
+
+    // center 'home' area
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.arc(cx,cy,48,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.stroke();
+
+    // tokens
+    // draw order: players tokens (so overlapping is consistent)
+    for(const p of players){
+      for(const t of p.tokens){
+        drawToken(t);
+      }
+    }
+
+    // highlight current player's turn
+    const cur = players[currentTurn];
+    turnDisplay.textContent = `${cur.isBot ? 'Bot' : 'You'}'s turn — ${cur.color.toUpperCase()}`;
+  }
+
+  function colorOf(name,alpha=1){
+    switch(name){
+      case 'red': return alpha===1 ? '#e74c3c' : `rgba(231,76,60,${alpha})`;
+      case 'green': return alpha===1 ? '#27ae60' : `rgba(39,174,96,${alpha})`;
+      case 'yellow': return alpha===1 ? '#f1c40f' : `rgba(241,196,15,${alpha})`;
+      case 'blue': return alpha===1 ? '#2980b9' : `rgba(41,128,185,${alpha})`;
+    }
+  }
+
+  function drawToken(token){
+    // small shadow
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.arc(token.x+4, token.y+6, 12, 0, Math.PI*2); ctx.fill();
+
+    // star-like token (stylized)
+    ctx.save();
+    ctx.translate(token.x, token.y);
+    // body circle
+    ctx.beginPath();
+    ctx.fillStyle = colorOf(token.color);
+    ctx.arc(0,0,12,0,Math.PI*2); ctx.fill();
+    // inner number
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Orbitron, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText((token.id+1).toString(), 0, 0);
+    ctx.restore();
+  }
+
+  // Basic dice animation
+  function rollDiceAnimation(){
+    return new Promise(resolve => {
+      let cycles = 12;
+      let i=0;
+      const tick = setInterval(()=> {
+        const r = Math.floor(Math.random()*6)+1;
+        diceDisplay.textContent = 'Dice: ' + r;
+        i++;
+        if(i>=cycles){
+          clearInterval(tick);
+          const final = Math.floor(Math.random()*6)+1;
+          diceDisplay.textContent = 'Dice: ' + final;
+          resolve(final);
+        }
+      }, 50);
+    });
+  }
+
+  // Move animation: move token step-by-step (1 per animation), show concept popup per step
+  async function animateTokenMove(player, token, steps){
+    animating = true;
+    // If token is at home and steps==6 -> move it to start index
+    if(token.onTrack === -1 && steps === 6){
+      token.onTrack = START_INDICES[token.color];
+      token.steps = 1;
+      token.updateXY();
+      await animateToXY(token);
+      await showConceptFor(token);
+      animating = false;
+      return;
+    }
+    for(let s=0;s<steps;s++){
+      // step forward
+      token.steps++;
+      if(token.steps < PATH_COUNT){
+        token.onTrack = (token.onTrack + 1 + PATH_COUNT) % PATH_COUNT;
+      } else if(token.steps === PATH_COUNT){
+        // token now just before home track: next step will go to homeTracks[...][0]
+        token.onTrack = null;
+      } else if(token.steps > PATH_COUNT && token.steps < PATH_COUNT + HOME_STEPS + 1){
+        // stay on homeTracks
+        token.onTrack = null;
+      } else if(token.steps === PATH_COUNT + HOME_STEPS){
+        // finished
+        token.onTrack = -2;
+      }
+      token.updateXY();
+      await animateToXY(token);
+      // show concept if on ring or on home step (not when finished)
+      await showConceptFor(token);
+    }
+    animating = false;
+  }
+
+  // animate token smoothly to token.x, token.y
+  function animateToXY(token){
+    return new Promise(res => {
+      const frames = 12;
+      const startX = token.x, startY = token.y;
+      // we already updated token.x/y; to create smooth movement, we will step from last drawn pos.
+      // But to simplify: we do small wait for visual continuity
+      setTimeout(res, 140);
+    });
+  }
+
+  // Show concept dialog for a token's current landing spot
+  function showConceptFor(token){
+    return new Promise(resolve => {
+      // pick a concept
+      const c = CONCEPTS[Math.floor(Math.random()*CONCEPTS.length)];
+      conceptTitle.textContent = `Concept — ${token.color.toUpperCase()} token ${token.id+1}`;
+      conceptText.textContent = c;
+      conceptModal.style.display = 'flex';
+      // clicking learned:
+      const onLearn = () => {
+        conceptModal.style.display = 'none';
+        learnBtn.removeEventListener('click', onLearn);
+        // award small points for acknowledging
+        points += 5;
+        scoreText.textContent = `Points: ${points}`;
+        resolve();
+      };
+      learnBtn.addEventListener('click', onLearn);
+    });
+  }
+
+  // Check capture: returns the token captured or null
+  function checkCapture(movingToken){
+    if(movingToken.onTrack === -1 || movingToken.onTrack === -2 || movingToken.steps >= PATH_COUNT) return null;
+    for(const p of players){
+      if(p.color === movingToken.color) continue;
+      for(const t of p.tokens){
+        if(t.onTrack === movingToken.onTrack && t.onTrack !== -1 && t.onTrack !== -2){
+          return t;
+        }
+      }
+    }
+    return null;
+  }
+
+  // reset all tokens
+  function resetGame(){
+    players = [];
+    for(const c of COLORS) players.push(new Player(c,false));
+    humanColor = null; humanIdx = 0; botIdx = 1; currentTurn = 0;
+    diceDisplay.textContent = 'Dice: -';
+    turnDisplay.textContent = '';
+    rollBtn.disabled = true;
+    colorModal.style.display = 'flex';
+    points = 0; scoreText.textContent = `Points: ${points}`;
+  }
+
+  // Bot decision & move
+  async function botPlay(){
+    if(animating) return;
+    rollBtn.disabled = true;
+    const d = await rollDiceAnimation(); dice = d;
+    // if no movable tokens -> end bot turn (unless 6)
+    const bot = players[currentTurn];
+    const movable = bot.tokens.filter(t => t.canMove(d));
+    if(movable.length === 0){
+      // no move
+      if(d === 6){
+        // still extra but no token to move
+        setTimeout(async ()=>{ await botPlay(); }, 600);
+        return;
+      } else {
+        // pass to next player
+        currentTurn = (currentTurn + 1) % players.length;
+        if(players[currentTurn].isBot) setTimeout(botPlay, 800); else rollBtn.disabled = false;
+        return;
+      }
+    }
+    // prioritize capture
+    let choice = null;
+    for(const t of movable){
+      const cpy = t.cloneAfterMove(d);
+      // check if it will land on an opponent
+      for(const p of players){
+        if(p.color === t.color) continue;
+        for(const ot of p.tokens){
+          if(ot.onTrack !== -1 && ot.onTrack !== -2 && cpy.onTrack === ot.onTrack){
+            choice = t; break;
+          }
+        }
+        if(choice) break;
+      }
+      if(choice) break;
+    }
+    if(!choice){
+      // pick the token with the highest steps (furthest ahead)
+      choice = movable.reduce((a,b)=> (a.steps>b.steps? a: b));
+    }
+    // animate move
+    await animateTokenMove(bot, choice, d);
+    // check capture
+    const captured = checkCapture(choice);
+    if(captured){
+      captured.onTrack = -1;
+      captured.steps = 0;
+      captured.updateXY();
+      // slight delay so capture is visible
+      await new Promise(r=>setTimeout(r,180));
+    }
+    // check win
+    if(bot.allFinished()){
+      alert('Bot wins!'); rollBtn.disabled = true; return;
+    }
+    // if rolled 6 -> bot plays again
+    if(d === 6){
+      setTimeout(botPlay, 600);
+      return;
+    } else {
+      // pass turn to next player (human)
+      currentTurn = (currentTurn + 1) % players.length;
+      if(players[currentTurn].isBot) setTimeout(botPlay, 600); else rollBtn.disabled = false;
+    }
+  }
+
+  // Human interact: after roll, click a token to move
+  canvas.addEventListener('click', async (ev) => {
+    if(animating) return;
+    if(!humanColor) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = ev.clientX - rect.left;
+    const my = ev.clientY - rect.top;
+    if(players[currentTurn].isBot) return;
+    // find token clicked that belongs to human and can move dice value
+    const human = players[currentTurn];
+    for(const t of human.tokens){
+      const dx = t.x - mx;
+      const dy = t.y - my;
+      if(dx*dx + dy*dy <= 15*15 && dice > 0){
+        if(!t.canMove(dice)) { /* invalid */ return; }
+        // move token
+        rollBtn.disabled = true;
+        await animateTokenMove(human, t, dice);
+        // capture
+        const captured = checkCapture(t);
+        if(captured){
+          captured.onTrack = -1; captured.steps = 0; captured.updateXY();
+          await new Promise(r=>setTimeout(r,150));
+        }
+        // check finish
+        if(human.allFinished()){
+          alert('You win! Congrats :)'); rollBtn.disabled = true; return;
+        }
+        // if rolled 6 -> human plays again
+        if(dice === 6){
+          dice = 0;
+          diceDisplay.textContent = 'Dice: -';
+          rollBtn.disabled = false;
+          return;
+        } else {
+          // pass turn to next player
+          dice = 0; diceDisplay.textContent = 'Dice: -';
+          currentTurn = (currentTurn + 1) % players.length;
+          // skip until a bot; if next is bot, let bot play; otherwise enable roll
+          if(players[currentTurn].isBot) setTimeout(botPlay, 700); else rollBtn.disabled = false;
+          return;
+        }
+      }
+    }
+  });
+
+  // Roll button click for human
+  rollBtn.addEventListener('click', async () => {
+    if(animating) return;
+    dice = await rollDiceAnimation();
+    // check if any token can move
+    const human = players[currentTurn];
+    const movable = human.tokens.some(t => t.canMove(dice));
+    if(!movable){
+      // no move; if 6 => still pass? in classic Ludo, if you roll 6 but no tokens to move, turn passes
+      dice = 0; diceDisplay.textContent='Dice: -';
+      rollBtn.disabled = true;
+      currentTurn = (currentTurn + 1) % players.length;
+      if(players[currentTurn].isBot) setTimeout(botPlay, 600); else rollBtn.disabled=false;
+      return;
+    }
+    // else wait for player to click token (handled in canvas click)
+    // keep roll button disabled until move completes or player clicks a token
+    rollBtn.disabled = false;
+  });
+
+  // choose color handlers
+  chooseColorBtn.addEventListener('click', ()=>{ colorModal.style.display='flex'; });
+  colorBtns.forEach(b=>{
+    b.addEventListener('click', ()=> {
+      const col = b.dataset.color;
+      startNewGame(col);
+    });
+  });
+
+  resetBtn.addEventListener('click', resetGame);
+
+  function startNewGame(color){
+    // reinitialize players properly: players list order red,green,yellow,blue
+    players = [];
+    for(const c of COLORS) players.push(new Player(c,false));
+    humanColor = color;
+    humanIdx = COLORS.indexOf(humanColor);
+    botIdx = (humanIdx + 1) % COLORS.length;
+    // Set bot flag
+    players.forEach((p, idx)=> p.isBot = (idx === botIdx));
+    // set starting turn to human
+    currentTurn = humanIdx;
+    // hide modal
+    colorModal.style.display = 'none';
+    // enable roll
+    rollBtn.disabled = false;
+    dice = 0;
+    diceDisplay.textContent = 'Dice: -';
+    points = 0; scoreText.textContent = `Points: ${points}`;
+    // draw initial board
+    drawBoard();
+  }
+
+  // simple main loop for visuals
+  function loop(){
+    drawBoard();
+    requestAnimationFrame(loop);
+  }
+
+  // Start
+  resetGame();
+  loop();
+
+})();
+</script>
+</body>
+</html>

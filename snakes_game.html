@@ -1,0 +1,534 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>EduVerSeX — Snakes & Ladders (AI Concepts)</title>
+<style>
+  :root{
+    --bg:#071021;
+    --card:#0f1724;
+    --accent:#00e6ff;
+    --accent2:#b517ff;
+    --muted:#9aa7c7;
+    color-scheme: dark;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#04050a,#071021);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;color:#e6f0ff}
+  .container{max-width:1100px;margin:22px auto;padding:18px}
+  header{display:flex;align-items:center;gap:16px}
+  .brand{display:flex;flex-direction:column}
+  h1{margin:0;font-family: 'Orbitron', sans-serif;font-size:28px;color:var(--accent)}
+  p.lead{margin:6px 0 0;color:var(--muted)}
+  .layout{display:flex;gap:20px;margin-top:18px;flex-wrap:wrap}
+  .board-wrap{background:rgba(255,255,255,0.02);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+  canvas#board{display:block;background:#071018;border-radius:8px}
+  .controls{width:360px;min-width:260px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.04)}
+  .controls h3{margin:0 0 8px;color:var(--accent)}
+  .dice{font-size:34px;font-weight:800;color:#04121a;background:linear-gradient(90deg,var(--accent),var(--accent2));width:84px;height:84px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:12px auto;box-shadow:0 8px 30px rgba(0,230,255,0.08)}
+  .btn{display:inline-block;padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,var(--accent),#7be7ff);color:#02121a;font-weight:700;border:none;cursor:pointer}
+  .btn.secondary{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)}
+  .status{margin-top:12px;color:var(--muted)}
+  .scoreboard{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:12px}
+  .tokenLegend{display:flex;gap:12px;align-items:center}
+  .dot{width:18px;height:18px;border-radius:50%}
+  .cyan{background:linear-gradient(90deg,#00e6ff,#6ef0ff)}
+  .mag{background:linear-gradient(90deg,#b517ff,#ff8cff)}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:99}
+  .modal .card{max-width:720px;background:var(--card);padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 12px 60px rgba(0,0,0,0.6)}
+  .modal h2{margin:0 0 8px;color:var(--accent)}
+  .modal p{color:var(--muted);line-height:1.45}
+  .modal .ok{margin-top:14px;display:inline-block}
+  footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
+  @media (max-width:920px){ .layout{flex-direction:column;align-items:center} .controls{width:92%} canvas#board{width:92vw;height:92vw;max-width:700px} }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="brand">
+      <h1>EduVerSeX — Snake &amp; Ladders (AI Concepts)</h1>
+      <p class="lead">Play, learn AI/coding concepts on each square. Single-player vs Bot.</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="board-wrap">
+      <canvas id="board" width="600" height="600"></canvas>
+    </div>
+
+    <div class="controls">
+      <h3>Game Controls</h3>
+      <div style="text-align:center">
+        <div id="dice" class="dice">-</div>
+        <button id="rollBtn" class="btn">Roll Dice</button>
+        <button id="resetBtn" class="btn secondary">Reset Game</button>
+      </div>
+
+      <div class="scoreboard">
+        <div>
+          <div style="font-size:12px;color:var(--muted)">Player</div>
+          <div style="font-weight:800">You <span class="tokenLegend"><span class="dot cyan" style="margin-left:8px"></span></span></div>
+          <div id="playerPos" style="color:var(--muted)">Position: 0</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--muted)">Bot</div>
+          <div style="font-weight:800">Bot <span class="tokenLegend"><span class="dot mag" style="margin-left:8px"></span></span></div>
+          <div id="botPos" style="color:var(--muted)">Position: 0</div>
+        </div>
+      </div>
+
+      <div class="status" id="status">Click <strong>Roll Dice</strong> to start. When you land, read the concept and press OK to continue.</div>
+    </div>
+  </div>
+
+  <footer>Made for EduVerSeX — Educational Snakes &amp; Ladders with AI concepts (1–100)</footer>
+</div>
+
+<!-- modal for concepts -->
+<div id="conceptModal" class="modal" role="dialog" aria-modal="true">
+  <div class="card">
+    <h2 id="conceptTitle">Concept</h2>
+    <p id="conceptText">...</p>
+    <button id="conceptOk" class="btn ok">OK</button>
+  </div>
+</div>
+
+<script>
+/* =========================
+   Snakes & Ladders Game JS
+   =========================
+   - 10x10 board drawn on canvas (600x600)
+   - Squares 1..100
+   - Snakes & Ladders mapping (some sample)
+   - 100 AI/coding concepts embedded (short)
+   - Player rolls, moves animated step by step
+   - On landing, concept modal shown; click OK to continue (then bot moves)
+   - Win/lose detection
+*/
+
+// --- Board and rendering setup ---
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const size = canvas.width;
+const cells = 10;
+const cellSize = size / cells;
+
+// tokens
+let playerPos = 0;
+let botPos = 0;
+
+// dice and control elements
+const diceEl = document.getElementById('dice');
+const rollBtn = document.getElementById('rollBtn');
+const resetBtn = document.getElementById('resetBtn');
+const playerPosEl = document.getElementById('playerPos');
+const botPosEl = document.getElementById('botPos');
+const statusEl = document.getElementById('status');
+
+// modal
+const modal = document.getElementById('conceptModal');
+const conceptTitle = document.getElementById('conceptTitle');
+const conceptText = document.getElementById('conceptText');
+const conceptOk = document.getElementById('conceptOk');
+
+let isAnimating = false;
+let awaitingConcept = false;
+let awaitingNext = false; // whether waiting for modal close to continue turn (player)
+
+// sample snakes and ladders mapping
+const jumps = {
+  // ladders (up)
+  2: 38, 7: 14, 8: 31, 15: 26, 21: 42, 28: 84, 36: 44, 51: 67, 71: 91, 78: 98,
+  // snakes (down)
+  16: 6, 46: 25, 49: 11, 62: 19, 64: 60, 74: 53, 89: 68, 92: 88, 95: 75, 99: 80
+};
+
+// 100 short AI/coding concepts (one per square)
+// Keep each short (1-2 lines); you can edit these later.
+const CONCEPTS = [
+  "Welcome! This square begins your AI/coding journey — start exploring Python basics.",
+  "What is a variable? A storage name for a value — used to hold data.",
+  "Data types: int, float, string, boolean — basics of representing data.",
+  "Input/Output: Reading from user and printing results (console I/O).",
+  "Operators: arithmetic (+,-,*,/) and comparison operators (>, <, ==).",
+  "Control flow: use if/else to make decisions in code.",
+  "Loops: for and while let you repeat tasks efficiently.",
+  "Functions: group code into reusable blocks with parameters and return values.",
+  "Lists/Arrays: ordered collections to store multiple items.",
+  "Indexing and slicing: access parts of arrays and strings.",
+  "Strings: text data — concatenation, length, and formatting.",
+  "Dictionaries/Maps: key-value stores for quick lookup.",
+  "File I/O: read and write files to save data persistently.",
+  "Debugging basics: print statements and reading stack traces.",
+  "Error handling: try/catch to manage runtime errors safely.",
+  "Pointers & memory (C++ intro): references to memory locations.",
+  "Object-Oriented Programming: classes, objects, encapsulation.",
+  "Methods and attributes: functions and data attached to objects.",
+  "Inheritance & polymorphism: reuse and adapt behavior across classes.",
+  "Recursion: a function calling itself for divide-and-conquer problems.",
+  "Modules & packages: share and organize code across files.",
+  "NumPy basics: efficient arrays & numerical operations.",
+  "Pandas intro: structured data with DataFrame for analysis.",
+  "Data cleaning: handle missing values & inconsistent formats.",
+  "Exploratory Data Analysis: visualize data to understand patterns.",
+  "Feature engineering: create meaningful inputs for models.",
+  "Supervised learning: train on labeled data (classification/regression).",
+  "Unsupervised learning: find structure without labels (clustering).",
+  "Train/test split: avoid overfitting by validating models.",
+  "Linear regression: predict continuous values using linear relationships.",
+  "Logistic regression: binary classification using probabilities.",
+  "Decision trees: split features to learn decision rules.",
+  "Random forests: ensembles of trees for robust predictions.",
+  "Gradient descent: iterative optimization of model parameters.",
+  "Loss functions: measure how wrong predictions are (MSE, cross-entropy).",
+  "Overfitting vs underfitting: model complexity tradeoffs.",
+  "Cross-validation: evaluate models reliably across folds.",
+  "Hyperparameters: settings that control learning (tuned externally).",
+  "Neural networks: layers of neurons learning feature hierarchies.",
+  "Activation functions: ReLU, sigmoid, tanh change neuron output.",
+  "Backpropagation: compute gradients through networks to learn.",
+  "Convolutional Neural Networks: great for image tasks.",
+  "Recurrent Neural Networks: sequence models for text/time series.",
+  "Transformers: attention-based models for language tasks.",
+  "Embeddings: vector representations for words & items.",
+  "Loss landscapes & optimization intuition.",
+  "Regularization: L1/L2 and dropout to reduce overfitting.",
+  "Batch normalization: helps stabilize deep network training.",
+  "Transfer learning: reuse pretrained models for new tasks.",
+  "Computer Vision basics: images -> pixels -> features.",
+  "Object detection vs classification: locating vs labeling objects.",
+  "NLP basics: tokens, sentences, and basic preprocessing.",
+  "Tokenization & stemming/lemmatization for text cleanup.",
+  "Word2Vec & semantic similarity: embeddings that capture meaning.",
+  "Sequence-to-sequence: translation & summarization models.",
+  "Evaluation metrics: accuracy, precision, recall, F1 score.",
+  "Confusion matrix: visualize classification outcomes.",
+  "ROC & AUC: trade-off between true/false positive rates.",
+  "Clustering algorithms: K-means and hierarchical approaches.",
+  "Dimensionality reduction: PCA and t-SNE for visualization.",
+  "Anomaly detection: spotting unusual patterns in data.",
+  "Reinforcement learning basics: agents, rewards, environment.",
+  "Q-learning: value-based reinforcement learning method.",
+  "Ethics in AI: fairness, privacy, transparency and bias.",
+  "Model interpretability: explain predictions for trust.",
+  "Data privacy & security: protect sensitive user data.",
+  "MLOps basics: deploy, monitor, and maintain models in production.",
+  "APIs for models: wrap model prediction as a web service.",
+  "Containers & Docker: package apps consistently across environments.",
+  "Version control: Git for tracking code and collaboration.",
+  "CI/CD basics: automate testing and deployment pipelines.",
+  "Performance optimization: profiling and improving speed.",
+  "Quantization & pruning: reduce model size for edge devices.",
+  "Edge AI: run models on-device for low-latency apps.",
+  "Generative models: GANs create realistic synthetic data.",
+  "Diffusion & image synthesis: modern image generation techniques.",
+  "Prompt engineering: crafting inputs for large language models.",
+  "Fine-tuning LLMs: adapt large models to specific tasks.",
+  "Human-in-the-loop: combine human feedback with model learning.",
+  "AI product design: focus on user problems & MVPs.",
+  "A/B testing models: compare model versions in real usage.",
+  "Monitoring models: detect drift & degradation over time.",
+  "Scaling & latency: engineering considerations for production.",
+  "Data pipelines: ETL and streaming for reliable data flow.",
+  "Feature stores: centralized feature management for teams.",
+  "Responsible AI frameworks: governance & compliance practices.",
+  "Careers in AI: roles, skills, and learning pathways.",
+  "Portfolio projects: build demo apps to demonstrate skills.",
+  "Open source resources: contribute & learn from the community.",
+  "Keeping up-to-date: research papers, blogs, and courses.",
+  "Capstone advice: pick a real problem and ship a solution.",
+  "Final step — celebrate: you've reached 100! Apply what you learned."
+];
+
+// ensure length = 100 (if not, fill with generic)
+while(CONCEPTS.length < 100) CONCEPTS.push("Short AI/coding tip — keep learning!");
+
+/* --- draw board grid, numbers, snakes, ladders --- */
+function drawBoard(){
+  ctx.clearRect(0,0,size,size);
+  // background
+  const g = ctx.createLinearGradient(0,0,size,size);
+  g.addColorStop(0,'rgba(0,230,255,0.03)');
+  g.addColorStop(1,'rgba(181,23,255,0.02)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,size,size);
+
+  // draw squares
+  for(let r=0;r<cells;r++){
+    for(let c=0;c<cells;c++){
+      const x = c*cellSize;
+      const y = r*cellSize;
+      // alternating light/dark
+      const alt = (r + c) % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.01)';
+      ctx.fillStyle = alt;
+      ctx.fillRect(x,y,cellSize,cellSize);
+    }
+  }
+
+  // numbers 1..100 bottom-left is 1
+  ctx.fillStyle = '#cfeff7';
+  ctx.font = '12px Inter, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  for(let n=1;n<=100;n++){
+    const coord = indexToXY(n);
+    ctx.fillStyle = (n % 10 === 0) ? '#ffd' : '#cfeff7';
+    ctx.fillText(String(n), coord.x - cellSize/2 + 6, coord.y - cellSize/2 + 6);
+  }
+
+  // draw ladders (green)
+  for(let k in jumps){
+    const from = Number(k);
+    const to = jumps[k];
+    if (to > from) drawConnector(from,to,'ladder');
+  }
+  // draw snakes (red)
+  for(let k in jumps){
+    const from = Number(k);
+    const to = jumps[k];
+    if (to < from) drawConnector(from,to,'snake');
+  }
+
+  // grid overlay lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<=cells;i++){
+    ctx.beginPath();
+    ctx.moveTo(0,i*cellSize);
+    ctx.lineTo(size,i*cellSize);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(i*cellSize,0);
+    ctx.lineTo(i*cellSize,size);
+    ctx.stroke();
+  }
+
+  // draw tokens
+  drawToken(playerPos,'#61fbff','#003f45');
+  drawToken(botPos,'#ff8df2','#3b0b35');
+}
+
+function indexToXY(index){
+  // return center coordinates for square index 1..100
+  if(index <= 0) return {x:-100,y:-100}; // off-board
+  const n = index - 1;
+  const row = Math.floor(n / 10);
+  let col = n % 10;
+  if(row % 2 === 1) col = 9 - col;
+  const x = col * cellSize + cellSize/2;
+  const y = size - (row * cellSize + cellSize/2);
+  return {x,y};
+}
+
+function drawToken(index, fill, stroke){
+  const p = indexToXY(index);
+  if(!p || index <= 0) return;
+  ctx.beginPath();
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 2;
+  ctx.arc(p.x, p.y, Math.min(20, cellSize*0.22), 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+}
+
+/* draw a snake (curved) or ladder (two parallel lines) between squares */
+function drawConnector(from,to,type){
+  const a = indexToXY(from);
+  const b = indexToXY(to);
+  if(!a || !b) return;
+  if(type === 'ladder'){
+    // two parallel lines with small rungs
+    ctx.strokeStyle = 'rgba(60,220,100,0.95)';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(a.x - 8, a.y - 8);
+    ctx.lineTo(b.x - 8, b.y - 8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(a.x + 8, a.y + 8);
+    ctx.lineTo(b.x + 8, b.y + 8);
+    ctx.stroke();
+    // rungs
+    const steps = 8;
+    for(let i=0;i<=steps;i++){
+      const t = i/steps;
+      const sx = a.x + (b.x-a.x)*t;
+      const sy = a.y + (b.y-a.y)*t;
+      ctx.strokeStyle = 'rgba(200,255,200,0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(sx - 10, sy - 10);
+      ctx.lineTo(sx + 10, sy + 10);
+      ctx.stroke();
+    }
+  } else {
+    // snake: red curved bezier with head
+    ctx.strokeStyle = 'rgba(255,90,90,0.95)';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    const cx = (a.x + b.x)/2 + (Math.random()-0.5)*120;
+    const cy = (a.y + b.y)/2 + (Math.random()-0.5)*120;
+    ctx.moveTo(a.x,a.y);
+    ctx.quadraticCurveTo(cx, cy, b.x, b.y);
+    ctx.stroke();
+    // head circle at 'to' (lower square)
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(200,40,40,0.95)';
+    ctx.arc(b.x, b.y, 12, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+/* --- Animation movement --- */
+function animateMove(startIdx, endIdx, setter, onComplete){
+  if(startIdx === endIdx){ if(onComplete) onComplete(); return; }
+  isAnimating = true;
+  let step = startIdx;
+  const forward = endIdx > startIdx;
+  const interval = setInterval(()=>{
+    if(forward) step++;
+    else step--;
+    setter(step);
+    drawBoard();
+    if(step === endIdx){
+      clearInterval(interval);
+      isAnimating = false;
+      if(onComplete) onComplete();
+    }
+  }, 160);
+}
+
+/* --- dice and turns logic --- */
+function rollDice(){
+  return Math.floor(Math.random()*6) + 1;
+}
+
+function updateUI(){
+  playerPosEl.textContent = 'Position: ' + playerPos;
+  botPosEl.textContent = 'Position: ' + botPos;
+  drawBoard();
+}
+
+function handlePlayerRoll(){
+  if(isAnimating || awaitingConcept) return;
+  const d = rollDice();
+  diceEl.textContent = d;
+  statusEl.textContent = `You rolled ${d}. Moving...`;
+  const target = Math.min(100, playerPos + d);
+  animateMove(playerPos, target, v => { playerPos = v; updateUI(); }, ()=>{
+    // check jump
+    if(jumps[playerPos] && jumps[playerPos] !== playerPos){
+      const after = jumps[playerPos];
+      statusEl.textContent = `You hit a ${after > playerPos ? 'Ladder' : 'Snake'}! Moving to ${after}...`;
+      setTimeout(()=> {
+        animateMove(playerPos, after, v=>{ playerPos=v; updateUI(); }, ()=> {
+          onLanding('player');
+        });
+      }, 350);
+    } else {
+      onLanding('player');
+    }
+  });
+}
+
+function onLanding(which){
+  updateUI();
+  const pos = which === 'player' ? playerPos : botPos;
+  // Show concept modal for this square (unless pos==0)
+  if(pos <= 0) { afterLandingContinue(which); return; }
+  const idx = pos - 1;
+  const text = CONCEPTS[idx] || "Keep learning — short AI tip here.";
+  conceptTitle.textContent = `Square ${pos}`;
+  conceptText.innerHTML = `<strong>AI / Coding concept:</strong><br>${text}`;
+  modal.style.display = 'flex';
+  awaitingConcept = true;
+  if(which === 'bot'){
+    // for bot show concept but auto-close after short time
+    setTimeout(()=> {
+      if(awaitingConcept){
+        closeConceptModal(true); // auto-ack
+      }
+    }, 1400 + Math.random()*1400);
+  }
+}
+
+function closeConceptModal(auto=false){
+  modal.style.display = 'none';
+  awaitingConcept = false;
+  // after modal closed, check win or continue
+  setTimeout(()=> {
+    if(playerPos >= 100){
+      setTimeout(()=> { alert('🎉 You reached 100 — You win!'); resetGame(); }, 200);
+      return;
+    }
+    if(botPos >= 100){
+      setTimeout(()=> { alert('Bot reached 100 — Bot wins. Try again!'); resetGame(); }, 200);
+      return;
+    }
+    // if last mover was player (we deduce from dice displayed); after player, bot moves
+    if(!auto && diceEl.textContent !== '-') {
+      // bot turn
+      setTimeout(botTurn, 600);
+    } else if (auto && diceEl.textContent === '-') {
+      // nothing
+    }
+  }, 120);
+}
+
+conceptOk.addEventListener('click', ()=> closeConceptModal(false));
+
+function afterLandingContinue(which){
+  // direct continue (no modal)
+  if(which === 'player') setTimeout(botTurn, 500);
+}
+
+function botTurn(){
+  if(isAnimating || awaitingConcept) return;
+  statusEl.textContent = 'Bot is rolling...';
+  const d = rollDice();
+  diceEl.textContent = d;
+  const target = Math.min(100, botPos + d);
+  animateMove(botPos, target, v => { botPos = v; updateUI(); }, ()=>{
+    if(jumps[botPos] && jumps[botPos] !== botPos){
+      const after = jumps[botPos];
+      setTimeout(()=> {
+        animateMove(botPos, after, v=>{ botPos = v; updateUI(); }, ()=> {
+          onLanding('bot');
+        });
+      }, 300);
+    } else {
+      onLanding('bot');
+    }
+  });
+}
+
+/* --- init and reset --- */
+function resetGame(){
+  playerPos = 0; botPos = 0; diceEl.textContent = '-';
+  playerPosEl.textContent = 'Position: 0';
+  botPosEl.textContent = 'Position: 0';
+  statusEl.textContent = 'Game reset. Click Roll Dice to start again.';
+  drawBoard();
+}
+
+// attach controls
+rollBtn.addEventListener('click', ()=> {
+  if(awaitingConcept || isAnimating) return;
+  handlePlayerRoll();
+});
+resetBtn.addEventListener('click', ()=> resetGame());
+
+// initial draw
+drawBoard();
+
+// Accessibility: allow Enter to roll
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') rollBtn.click();
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduVerSeX</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+  <!-- Particles.js -->
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  <style>
+    /* Live Classes Banner Styles */
+    .live-classes-banner {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px;
+      margin: 40px auto;
+      border-radius: 20px;
+      text-align: center;
+      max-width: 800px;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4); }
+      50% { box-shadow: 0 10px 40px rgba(102, 126, 234, 0.6); }
+    }
+
+    .live-classes-banner h3 {
+      color: #fff;
+      font-size: 2em;
+      margin-bottom: 15px;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .live-classes-banner p {
+      color: #f0f0f0;
+      font-size: 1.1em;
+      margin-bottom: 20px;
+    }
+
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 10px 20px;
+      border-radius: 30px;
+      backdrop-filter: blur(10px);
+    }
+
+    .live-dot {
+      width: 12px;
+      height: 12px;
+      background: #ff3838;
+      border-radius: 50%;
+      animation: blink 1.5s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Quiz Section Styles */
+    #quiz {
+      padding: 60px 20px;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      position: relative;
+    }
+
+    .quiz-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .quiz-header {
+      margin-bottom: 40px;
+    }
+
+    .quiz-header h2 {
+      color: #fff;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .quiz-score {
+      font-size: 1.5em;
+      color: #ffd700;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+
+    .quiz-categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .quiz-category-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border: none;
+      border-radius: 15px;
+      font-size: 1.1em;
+      cursor: pointer;
+      transition: transform 0.3s, box-shadow 0.3s;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .quiz-category-btn:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Quiz Modal Styles */
+    .quiz-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .quiz-modal.active {
+      display: flex;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .quiz-popup {
+      background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: slideUp 0.4s;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .question-number {
+      color: #667eea;
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+
+    .question-text {
+      color: #fff;
+      font-size: 1.3em;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    .quiz-options {
+      display: grid;
+      gap: 15px;
+    }
+
+    .option-btn {
+      background: rgba(102, 126, 234, 0.2);
+      color: #fff;
+      padding: 15px 20px;
+      border: 2px solid #667eea;
+      border-radius: 10px;
+      font-size: 1.1em;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: left;
+    }
+
+    .option-btn:hover {
+      background: rgba(102, 126, 234, 0.4);
+      transform: translateX(5px);
+    }
+
+    .option-btn.correct {
+      background: rgba(52, 211, 153, 0.3);
+      border-color: #34d399;
+      animation: correctPulse 0.5s;
+    }
+
+    .option-btn.incorrect {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: #ef4444;
+      animation: shake 0.5s;
+    }
+
+    @keyframes correctPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    .quiz-feedback {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 1.1em;
+    }
+
+    .quiz-feedback.correct {
+      background: rgba(52, 211, 153, 0.2);
+      color: #34d399;
+    }
+
+    .quiz-feedback.incorrect {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .next-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1em;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: transform 0.3s;
+    }
+
+    .next-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .quiz-complete {
+      text-align: center;
+      color: #fff;
+    }
+
+    .quiz-complete h3 {
+      font-size: 2em;
+      margin-bottom: 20px;
+      color: #ffd700;
+    }
+
+    .quiz-complete p {
+      font-size: 1.3em;
+      margin-bottom: 30px;
+    }
+
+    .restart-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 40px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.2em;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+
+    .restart-btn:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <!-- Particle Background -->
+  <div id="particles-js"></div>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <h1 class="logo">EduVerSeX</h1>
+    <nav>
+      <ul>
+        <li><a href="#intro">Home</a></li>
+        <li><a href="#courses">Courses</a></li>
+        <li><a href="#games">Games</a></li>
+        <li><a href="#quiz">Quiz</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Intro Section -->
+  <section id="intro" class="section">
+    <div class="intro-content">
+      <h2>Welcome to EduVerSe-X 🚀</h2>
+      <p>
+        EduVerSe-X is your futuristic tech-learning space where you can explore programming 
+        courses, play fun educational games, and level up your skills while earning points.
+        Learn • Play • Compete • Grow 💡
+      </p>
+    </div>
+  </section>
+
+  <!-- Courses Section -->
+  <section id="courses" class="section">
+    <h2 class="section-title">📚 Our Courses</h2>
+    
+    <!-- Live Classes Coming Soon Banner -->
+    <div class="live-classes-banner">
+      <h3>🔴 Live Classes Coming Soon!</h3>
+      <p>Get ready for interactive live sessions with expert instructors</p>
+      <div class="live-indicator">
+        <span class="live-dot"></span>
+        <span style="color: #fff; font-weight: bold;">Launching January 2025</span>
+      </div>
+    </div>
+
+    <div class="courses-container">
+      <!-- Python -->
+      <div class="course-card">
+        <h3>🐍 Python</h3>
+        <iframe width="300" height="180" src="https://www.youtube.com/embed/XKHEtdqhLK8" frameborder="0" allowfullscreen></iframe>
+        <p>Learn Python basics and advanced concepts.</p>
+      </div>
+
+      <!-- C++ -->
+      <div class="course-card">
+        <h3>💻 C++</h3>
+        <iframe width="300" height="180" src="https://www.youtube.com/embed/8jLOx1hD3_o" frameborder="0" allowfullscreen></iframe>
+        <p>Master the language of speed and power.</p>
+      </div>
+
+      <!-- JavaScript -->
+      <div class="course-card">
+        <h3>⚡ JavaScript</h3>
+        <iframe width="300" height="180" src="https://www.youtube.com/embed/lfmg-EJ8gm4" frameborder="0" allowfullscreen></iframe>
+        <p>Make websites dynamic and interactive.</p>
+      </div>
+
+      <!-- HTML & CSS -->
+      <div class="course-card">
+        <h3>🌐 HTML & CSS</h3>
+        <iframe width="300" height="180" src="https://www.youtube.com/embed/HGTJBPNC-Gw" frameborder="0" allowfullscreen></iframe>
+        <p>Build stunning websites from scratch.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Games Section -->
+  <section id="games" class="section">
+    <h2 class="section-title">🎮 Play & Learn</h2>
+    <p class="section-subtitle">Earn points while you play Ludo & Snake & Ladders!</p>
+
+    <div class="games-container">
+      <!-- Ludo King Game -->
+      <div class="game-card">
+        <h3>🎲 Ludo Game</h3>
+        <p><a href="ludo_game.html" target="_blank">Play Local Ludo 3D</a></p>
+      </div>
+
+      <!-- Snake & Ladders Game -->
+      <div class="game-card">
+        <h3>🐍 Snake & Ladders Game</h3>
+        <p><a href="snakes_game.html" target="_blank">Play Local Snakes & Ladders 3D</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quiz Section -->
+  <section id="quiz" class="section">
+    <div class="quiz-container">
+      <div class="quiz-header">
+        <h2>🧠 Test Your Knowledge</h2>
+        <p style="color: #a0aec0; font-size: 1.2em;">Challenge yourself and earn points!</p>
+        <div class="quiz-score">Total Points: <span id="totalScore">0</span></div>
+      </div>
+
+      <div class="quiz-categories">
+        <button class="quiz-category-btn" onclick="startQuiz('python')">
+          🐍 Python Quiz
+        </button>
+        <button class="quiz-category-btn" onclick="startQuiz('cpp')">
+          💻 C++ Quiz
+        </button>
+        <button class="quiz-category-btn" onclick="startQuiz('javascript')">
+          ⚡ JavaScript Quiz
+        </button>
+        <button class="quiz-category-btn" onclick="startQuiz('html-css')">
+          🌐 HTML & CSS Quiz
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quiz Modal -->
+  <div class="quiz-modal" id="quizModal">
+    <div class="quiz-popup" id="quizPopup">
+      <!-- Quiz content will be dynamically inserted here -->
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2025 EduVerSeX | Learn • Play • Grow</p>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    // Quiz Data
+    const quizData = {
+      python: [
+        {
+          question: "What is the correct file extension for Python files?",
+          options: [".py", ".python", ".pt", ".pyt"],
+          correct: 0
+        },
+        {
+          question: "Which keyword is used to create a function in Python?",
+          options: ["function", "def", "func", "define"],
+          correct: 1
+        },
+        {
+          question: "How do you insert comments in Python code?",
+          options: ["// This is a comment", "/* This is a comment */", "# This is a comment", "<!-- This is a comment -->"],
+          correct: 2
+        },
+        {
+          question: "Which of the following is used to define a block of code in Python?",
+          options: ["Curly brackets", "Parentheses", "Indentation", "Quotation marks"],
+          correct: 2
+        },
+        {
+          question: "What is the output of print(2 ** 3)?",
+          options: ["5", "6", "8", "9"],
+          correct: 2
+        }
+      ],
+      cpp: [
+        {
+          question: "Which of the following is the correct syntax to output 'Hello World' in C++?",
+          options: ["Console.WriteLine('Hello World');", "cout << 'Hello World';", "System.out.println('Hello World');", "print('Hello World')"],
+          correct: 1
+        },
+        {
+          question: "Which header file is required for using cout in C++?",
+          options: ["<stdio.h>", "<iostream>", "<conio.h>", "<stream>"],
+          correct: 1
+        },
+        {
+          question: "What is the correct way to declare a pointer in C++?",
+          options: ["int p;", "int *p;", "int &p;", "pointer int p;"],
+          correct: 1
+        },
+        {
+          question: "Which operator is used to access the value at the address stored in a pointer?",
+          options: ["&", "*", "->", "."],
+          correct: 1
+        },
+        {
+          question: "What is the size of int data type in C++ (in most systems)?",
+          options: ["2 bytes", "4 bytes", "8 bytes", "Depends on compiler"],
+          correct: 1
+        }
+      ],
+      javascript: [
+        {
+          question: "Inside which HTML element do we put the JavaScript?",
+          options: ["<javascript>", "<js>", "<script>", "<scripting>"],
+          correct: 2
+        },
+        {
+          question: "How do you create a function in JavaScript?",
+          options: ["function:myFunction()", "function myFunction()", "function = myFunction()", "create myFunction()"],
+          correct: 1
+        },
+        {
+          question: "How do you write 'Hello World' in an alert box?",
+          options: ["msg('Hello World');", "alertBox('Hello World');", "alert('Hello World');", "msgBox('Hello World');"],
+          correct: 2
+        },
+        {
+          question: "Which operator is used to assign a value to a variable?",
+          options: ["*", "=", "-", "x"],
+          correct: 1
+        },
+        {
+          question: "What will typeof null return?",
+          options: ["'null'", "'undefined'", "'object'", "'number'"],
+          correct: 2
+        }
+      ],
+      'html-css': [
+        {
+          question: "What does HTML stand for?",
+          options: ["Hyper Text Markup Language", "High Tech Modern Language", "Home Tool Markup Language", "Hyperlinks and Text Markup Language"],
+          correct: 0
+        },
+        {
+          question: "Which HTML tag is used to define an internal style sheet?",
+          options: ["<script>", "<style>", "<css>", "<link>"],
+          correct: 1
+        },
+        {
+          question: "Which CSS property controls the text size?",
+          options: ["text-style", "font-style", "text-size", "font-size"],
+          correct: 3
+        },
+        {
+          question: "How do you make text bold in HTML?",
+          options: ["<bold>", "<b>", "<strong>", "Both <b> and <strong>"],
+          correct: 3
+        },
+        {
+          question: "Which property is used to change the background color in CSS?",
+          options: ["color", "bgcolor", "background-color", "background"],
+          correct: 2
+        }
+      ]
+    };
+
+    let currentQuiz = null;
+    let currentQuestionIndex = 0;
+    let currentScore = 0;
+    let totalScore = parseInt(localStorage.getItem('eduversexScore') || '0');
+    let answeredCurrent = false;
+
+    // Initialize score display
+    document.getElementById('totalScore').textContent = totalScore;
+
+    function startQuiz(category) {
+      currentQuiz = quizData[category];
+      currentQuestionIndex = 0;
+      currentScore = 0;
+      answeredCurrent = false;
+      showQuestion();
+      document.getElementById('quizModal').classList.add('active');
+    }
+
+    function showQuestion() {
+      if (currentQuestionIndex >= currentQuiz.length) {
+        showQuizComplete();
+        return;
+      }
+
+      const question = currentQuiz[currentQuestionIndex];
+      const popup = document.getElementById('quizPopup');
+      
+      popup.innerHTML = `
+        <div class="question-number">Question ${currentQuestionIndex + 1} of ${currentQuiz.length}</div>
+        <div class="question-text">${question.question}</div>
+        <div class="quiz-options">
+          ${question.options.map((option, index) => `
+            <button class="option-btn" onclick="checkAnswer(${index})">${option}</button>
+          `).join('')}
+        </div>
+        <div id="feedback"></div>
+      `;
+      
+      answeredCurrent = false;
+    }
+
+    function checkAnswer(selectedIndex) {
+      if (answeredCurrent) return;
+      
+      answeredCurrent = true;
+      const question = currentQuiz[currentQuestionIndex];
+      const options = document.querySelectorAll('.option-btn');
+      const feedbackDiv = document.getElementById('feedback');
+      
+      if (selectedIndex === question.correct) {
+        options[selectedIndex].classList.add('correct');
+        currentScore += 10;
+        totalScore += 10;
+        localStorage.setItem('eduversexScore', totalScore.toString());
+        document.getElementById('totalScore').textContent = totalScore;
+        
+        feedbackDiv.innerHTML = `
+          <div class="quiz-feedback correct">
+            ✅ Correct! You earned 10 points!
+          </div>
+          <button class="next-btn" onclick="nextQuestion()">Next Question</button>
+        `;
+      } else {
+        options[selectedIndex].classList.add('incorrect');
+        options[question.correct].classList.add('correct');
+        
+        feedbackDiv.innerHTML = `
+          <div class="quiz-feedback incorrect">
+            ❌ Incorrect! The correct answer is: ${question.options[question.correct]}
+          </div>
+          <button class="next-btn" onclick="nextQuestion()">Next Question</button>
+        `;
+      }
+      
+      // Disable all option buttons
+      options.forEach(btn => {
+        btn.style.pointerEvents = 'none';
+      });
+    }
+
+    function nextQuestion() {
+      currentQuestionIndex++;
+      showQuestion();
+    }
+
+    function showQuizComplete() {
+      const popup = document.getElementById('quizPopup');
+      popup.innerHTML = `
+        <div class="quiz-complete">
+          <h3>🎉 Quiz Complete!</h3>
+          <p>You scored ${currentScore} points in this quiz!</p>
+          <p>Total Score: ${totalScore} points</p>
+          <button class="restart-btn" onclick="closeQuiz()">Back to Quiz Selection</button>
+        </div>
+      `;
+    }
+
+    function closeQuiz() {
+      document.getElementById('quizModal').classList.remove('active');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('quizModal').addEventListener('click', function(e) {
+      if (e.target === this && answeredCurrent) {
+        closeQuiz();
+      }
+    });
+  </script>
+</body>
+</html
